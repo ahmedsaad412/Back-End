@@ -5,14 +5,16 @@ namespace CustomerService.IService
     public interface ICustomerService
     {
         #region demo
-        //Task<DataGridDTO> GetCustomers();
+        Task<DataGridDTO> GetCustomers();
         //int GetCustomersCount();
         //Task<DataGridDTO> GridCustomers(GridParameterDTO options); 
         #endregion
 
-        Task<PageDTO<CustomersDTO>> GetCustomerPage(int skip , int take ,string orderBy);
-        Task<List<CustomersDTO>> GetSortedListByPropertyName(string orderBy);
+        #region demo 2
+        //Task<PageDTO<CustomersDTO>> GetCustomerPage(int skip , int take ,string orderBy);
+        //Task<List<CustomersDTO>> GetSortedListByPropertyName(string orderBy); 
+        #endregion
 
-        Task<PageDTO<T>> GetGenricPage<T>(int skip , int take ,string orderBy) where T :class;
+        Task<PageDTO<T>> GetPage<T>(PagingOptions pagingOptions) where T : class;
     }
 }

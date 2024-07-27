@@ -1,13 +1,8 @@
 ﻿using Azure;
-using CustomerService.Data;
 using CustomerService.DTO;
 using CustomerService.Entities;
-using CustomerService.Extensions;
 using CustomerService.IService;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 
 namespace CustomerService.Controllers
 {
@@ -16,12 +11,32 @@ namespace CustomerService.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
-        private readonly ApplicationDbContext _context;
 
-        public CustomersController(ICustomerService customerService,ApplicationDbContext context )
+        public CustomersController(ICustomerService customerService)
         {
             _customerService = customerService;
-            _context = context;
+
+        }
+
+        [HttpGet("AllCustomers")]
+        public async Task<ActionResult<Page<Customer>>> GetGenricPaged()
+        {
+            var page = await _customerService.GetCustomers();
+            return Ok(page);
+        }
+        [HttpPost("GetCustomerPage")]
+        public async Task<ActionResult<Page<Customer>>> GetCustomerPage([FromBody] PagingOptions pagingOptions)
+        {
+
+
+            var page = await _customerService.GetPage<Customer>(pagingOptions);
+            return Ok(page);
+        }
+        [HttpPost("GetUserPage")]
+        public async Task<ActionResult<Page<User>>> GetUserPage([FromBody] PagingOptions pagingOptions)
+        {
+            var page = await _customerService.GetPage<User>(pagingOptions);
+            return Ok(page);
         }
 
         #region demo
@@ -48,7 +63,7 @@ namespace CustomerService.Controllers
         //    return Ok(data);
         //} 
         #endregion
-
+        #region demo 2 
         //[HttpGet("paged")]
         //public async Task<ActionResult<Page<CustomersDTO>>> GetPaged(int skip , [Required] int take, string orderBy)
         //{
@@ -62,11 +77,13 @@ namespace CustomerService.Controllers
         //    return Ok(page);
         //}
 
-        [HttpGet("UseGenric")]
-        public async Task<ActionResult<Page<Customer>>> GetGenricPaged(int skip, [Required] int take, string orderBy)
-        {
-            var page = await _customerService.GetGenricPage<Customer>(skip, take, orderBy);
-            return Ok(page);
-        }
+        //[HttpGet("UseGenric")]
+        //public async Task<ActionResult<Page<Customer>>> GetGenricPaged(int skip, [Required] int take, string orderBy)
+        //{
+        //    var page = await _customerService.GetGenricPage<Customer>(skip, take, orderBy);
+        //    return Ok(page);
+        //} 
+
+        #endregion
     }
-    }
+}

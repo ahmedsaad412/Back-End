@@ -1,14 +1,8 @@
 ﻿using CustomerService.Data;
 using CustomerService.DTO;
-using CustomerService.Entities;
-using CustomerService.IService;
-using System.Linq;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq.Dynamic.Core;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using CustomerService.Extensions;
+using CustomerService.IService;
+using Microsoft.EntityFrameworkCore;
 
 namespace CustomerService.Service
 {
@@ -20,15 +14,27 @@ namespace CustomerService.Service
         {
             _context = context;
         }
+        public async Task<PageDTO<T>> GetPage<T>(PagingOptions pagingOptions) where T : class
+        {
+            int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
+            int take = pagingOptions.pageSize;
+            string sortProperty = pagingOptions.SortProperty;
+            string sortDirection = pagingOptions.SortDirection;
+            string? searchProperty = pagingOptions.SearchProperty;
+            string? searchValue = pagingOptions.SearchText;
+            IQueryable<T> query = _context.Set<T>();
+            var page = await query.ToPagedAsync(skip, take, sortProperty, sortDirection, searchProperty, searchValue);
+            return page;
+        }
 
         #region demo
-        //public async Task<DataGridDTO> GetCustomers()
-        //{
-        //    List<CustomersDTO> customers=await GetCustomersList();
-        //    int totalNumber = customers.Count();
-        //    DataGridDTO Data = new DataGridDTO { Data = customers, TotalNumber = totalNumber };
-        //    return Data;
-        //}
+        public async Task<DataGridDTO> GetCustomers()
+        {
+            List<CustomersDTO> customers = await GetCustomersList();
+            int totalNumber = customers.Count();
+            DataGridDTO Data = new DataGridDTO { Data = customers, TotalNumber = totalNumber };
+            return Data;
+        }
 
         //public async Task<DataGridDTO> GridCustomers(GridParameterDTO options)
         //{
@@ -81,56 +87,52 @@ namespace CustomerService.Service
         //}
 
 
-        //public async Task<List<CustomersDTO>> GetCustomersList()
-        //{
-        //    List<CustomersDTO> allCustomers = await _context.Customers.Select(x => new CustomersDTO
-        //    {
-        //        Id = x.Id,
-        //        FirstName = x.FirstName,
-        //        LastName = x.LastName,
-        //        Email = x.Email,
-        //        PhoneNumber = x.PhoneNumber,
-        //    }).ToListAsync();
-        //    return allCustomers;
-        //}
-        //public int GetCustomersCount()
-        //{
-        //    int totalNumbers = _context.Customers.ToList().Count();
-        //    return totalNumbers;
-        //} 
+        public async Task<List<CustomersDTO>> GetCustomersList()
+        {
+            List<CustomersDTO> allCustomers = await _context.Customers.Select(x => new CustomersDTO
+            {
+                Id = x.Id,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                Email = x.Email,
+                PhoneNumber = x.PhoneNumber,
+            }).ToListAsync();
+            return allCustomers;
+        }
+        public int GetCustomersCount()
+        {
+            int totalNumbers = _context.Customers.ToList().Count();
+            return totalNumbers;
+        }
         #endregion
 
-        public async Task<PageDTO<CustomersDTO>> GetCustomerPage(int skip, int take, string orderBy)
-        {
-            var page = await _context.Customers.Select(x=>new CustomersDTO
-            {
-                FirstName=x.FirstName,
-                Email=x.Email,
-                LastName=x.LastName,
-                PhoneNumber=x.PhoneNumber,
-                Id=x.Id
-            }).ToPagedAsync(skip, take, orderBy);
-            return page;
-        }
+        #region demo 2
+        //public async Task<PageDTO<CustomersDTO>> GetCustomerPage(int skip, int take, string orderBy)
+        //{
+        //    var page = await _context.Customers.Select(x=>new CustomersDTO
+        //    {
+        //        FirstName=x.FirstName,
+        //        Email=x.Email,
+        //        LastName=x.LastName,
+        //        PhoneNumber=x.PhoneNumber,
+        //        Id=x.Id
+        //    }).ToPagedAsync(skip, take, orderBy);
+        //    return page;
+        //}
 
-        public async Task<PageDTO<T>> GetGenricPage<T>(int skip, int take, string orderBy) where T : class
-        {
-            IQueryable<T> query = _context.Set<T>(); 
-            var page = await query.ToPagedAsync(skip, take, orderBy);
-            return page;
-        }
 
-        public async Task<List<CustomersDTO>> GetSortedListByPropertyName(string orderBy)
-        {
-            var sortedList =await _context.Customers.Select(x => new CustomersDTO
-            {
-                FirstName = x.FirstName,
-                Email = x.Email,
-                LastName = x.LastName,
-                PhoneNumber = x.PhoneNumber,
-                Id = x.Id
-            }).OrderBy<CustomersDTO>(orderBy).ToListAsync();
-            return sortedList;
-        }
+        //public async Task<List<CustomersDTO>> GetSortedListByPropertyName(string orderBy)
+        //{
+        //    var sortedList =await _context.Customers.Select(x => new CustomersDTO
+        //    {
+        //        FirstName = x.FirstName,
+        //        Email = x.Email,
+        //        LastName = x.LastName,
+        //        PhoneNumber = x.PhoneNumber,
+        //        Id = x.Id
+        //    }).OrderBy<CustomersDTO>(orderBy).ToListAsync();
+        //    return sortedList;
+        //} 
+        #endregion
     }
 }
