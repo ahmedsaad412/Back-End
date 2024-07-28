@@ -1,25 +1,36 @@
 ﻿using CustomerService.DTO;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using System.Net.NetworkInformation;
 namespace CustomerService.Extensions
 {
     public static class CustomExpressions
     {
-        #region  order by property name and direction whith filtering and pagination
+        #region  order by (property name and direction) whith filtering and pagination
         public static async Task<PageDTO<T>> ToPagedAsync<T>(this IQueryable<T> src
-            , int skip, int take
-            , string sortProperty = null, string sortDirection = null
-            , string filterProperty = null, string filterValue = null) where T : class
+            , PagingOptions pagingOptions) where T : class
         {
-            if (!string.IsNullOrWhiteSpace(filterProperty) && !string.IsNullOrWhiteSpace(filterValue))
+            #region intial values 
+            int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
+            int take = pagingOptions.pageSize;
+            string sortProperty = pagingOptions.SortProperty;
+            string sortDirection = pagingOptions.SortDirection;
+            string? searchProperty = pagingOptions.SearchProperty =="string" ?null : pagingOptions.SearchProperty;
+            string? searchValue = pagingOptions.SearchText == "string" ? null : pagingOptions.SearchText;
+            #endregion
+            #region filteration  
+            if (!string.IsNullOrWhiteSpace(searchProperty) && !string.IsNullOrWhiteSpace(searchValue))
             {
-                src = src.Where(ToLambdaFilter<T>(filterProperty, filterValue));
+                src = src.Where(ToLambdaFilter<T>(searchProperty, searchValue));
             }
+            #endregion
+            #region sorting 
             if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
             {
-                var property = sortProperty;
-                src = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(property) : src.OrderBy(property);
-            }
+  
+                src = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(sortProperty) : src.OrderBy(sortProperty);
+            } 
+            #endregion
             var results = new PageDTO<T>
             {
                 TotalItemCount = await src.CountAsync(),

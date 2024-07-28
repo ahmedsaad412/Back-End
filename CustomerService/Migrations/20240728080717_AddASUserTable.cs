@@ -5,13 +5,13 @@
 namespace CustomerService.Migrations
 {
     /// <inheritdoc />
-    public partial class AddUsersTAble : Migration
+    public partial class AddASUserTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Users",
+                name: "ASUsers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -24,7 +24,7 @@ namespace CustomerService.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Users", x => x.Id);
+                    table.PrimaryKey("PK_ASUsers", x => x.Id);
                 });
         }
 
@@ -32,7 +32,7 @@ namespace CustomerService.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "ASUsers");
         }
     }
 }
