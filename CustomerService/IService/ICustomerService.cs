@@ -1,4 +1,5 @@
 ﻿using CustomerService.DTO;
+using CustomerService.DTO.Page;
 
 namespace CustomerService.IService
 {

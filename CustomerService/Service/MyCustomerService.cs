@@ -1,5 +1,6 @@
 ﻿using CustomerService.Data;
 using CustomerService.DTO;
+using CustomerService.DTO.Page;
 using CustomerService.Extensions;
 using CustomerService.IService;
 using Microsoft.EntityFrameworkCore;

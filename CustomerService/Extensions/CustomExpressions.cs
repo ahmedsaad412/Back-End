@@ -1,4 +1,4 @@
-﻿using CustomerService.DTO;
+﻿using CustomerService.DTO.Page;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Net.NetworkInformation;
@@ -13,10 +13,10 @@ namespace CustomerService.Extensions
             #region intial values 
             int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
             int take = pagingOptions.pageSize;
-            string sortProperty = pagingOptions.SortProperty;
-            string sortDirection = pagingOptions.SortDirection;
-            string? searchProperty = pagingOptions.SearchProperty =="string" ?null : pagingOptions.SearchProperty;
-            string? searchValue = pagingOptions.SearchText == "string" ? null : pagingOptions.SearchText;
+            string sortProperty = pagingOptions.SortProperty ;
+            string sortDirection = pagingOptions.SortDirection ;
+            string searchProperty = pagingOptions.SearchProperty;
+            string searchValue = pagingOptions.SearchText;
             #endregion
             #region filteration  
             if (!string.IsNullOrWhiteSpace(searchProperty) && !string.IsNullOrWhiteSpace(searchValue))
@@ -72,6 +72,7 @@ namespace CustomerService.Extensions
 
             return lambda;
         }
+
         #endregion
 
         #endregion

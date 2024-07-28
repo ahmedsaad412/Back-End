@@ -1,5 +1,5 @@
 ﻿using Azure;
-using CustomerService.DTO;
+using CustomerService.DTO.Page;
 using CustomerService.Entities;
 using CustomerService.IService;
 using Microsoft.AspNetCore.Mvc;

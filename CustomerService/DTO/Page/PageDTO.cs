@@ -1,4 +1,4 @@
-﻿namespace CustomerService.DTO
+﻿namespace CustomerService.DTO.Page
 {
     public class PageDTO<T> where T : class
     {
