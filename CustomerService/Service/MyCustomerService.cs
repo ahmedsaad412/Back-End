@@ -16,14 +16,8 @@ namespace CustomerService.Service
         }
         public async Task<PageDTO<T>> GetPage<T>(PagingOptions pagingOptions) where T : class
         {
-            int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
-            int take = pagingOptions.pageSize;
-            string sortProperty = pagingOptions.SortProperty;
-            string sortDirection = pagingOptions.SortDirection;
-            string? searchProperty = pagingOptions.SearchProperty;
-            string? searchValue = pagingOptions.SearchText;
             IQueryable<T> query = _context.Set<T>();
-            var page = await query.ToPagedAsync(skip, take, sortProperty, sortDirection, searchProperty, searchValue);
+            var page = await query.ToPagedAsync(pagingOptions);
             return page;
         }
 
@@ -89,7 +83,7 @@ namespace CustomerService.Service
 
         public async Task<List<CustomersDTO>> GetCustomersList()
         {
-            List<CustomersDTO> allCustomers = await _context.Customers.Select(x => new CustomersDTO
+            List<CustomersDTO> allCustomers = await _context.ASCustomers.Select(x => new CustomersDTO
             {
                 Id = x.Id,
                 FirstName = x.FirstName,
@@ -101,7 +95,7 @@ namespace CustomerService.Service
         }
         public int GetCustomersCount()
         {
-            int totalNumbers = _context.Customers.ToList().Count();
+            int totalNumbers = _context.ASCustomers.ToList().Count();
             return totalNumbers;
         }
         #endregion

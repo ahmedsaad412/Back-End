@@ -32,13 +32,13 @@ namespace CustomerService.Controllers
             var page = await _customerService.GetPage<Customer>(pagingOptions);
             return Ok(page);
         }
-        [HttpPost("GetUserPage")]
-        public async Task<ActionResult<Page<User>>> GetUserPage([FromBody] PagingOptions pagingOptions)
-        {
-            var page = await _customerService.GetPage<User>(pagingOptions);
-            return Ok(page);
-        }
 
+        //[HttpPost("GetUserPage")]
+        //public async Task<ActionResult<Page<User>>> GetUserPage([FromBody] PagingOptions pagingOptions)
+        //{
+        //    var page = await _customerService.GetPage<User>(pagingOptions);
+        //    return Ok(page);
+        //}
         #region demo
         //[HttpGet]
         //public async Task<ActionResult<DataGridDTO>> GetCustomers()

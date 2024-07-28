@@ -10,8 +10,8 @@ namespace CustomerService.Data
         {
 
         }
-        public DbSet<Customer> Customers { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<Customer> ASCustomers { get; set; }
+        public DbSet<User> ASUsers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
