@@ -6,8 +6,6 @@
         public int pageSize { get; set; } 
         public string SortProperty { get; set; }
         public string SortDirection { get; set; }
-        public string? SearchProperty { get; set; }
-        public string? SearchText { get; set; }
-
+        public FilterDTO? Filters{ get; set; } 
     }
 }

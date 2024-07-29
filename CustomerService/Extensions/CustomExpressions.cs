@@ -1,12 +1,16 @@
 ﻿using CustomerService.DTO.Page;
+using CustomerService.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using System;
 using System.Linq.Expressions;
 using System.Net.NetworkInformation;
+using System.Reflection.Metadata;
 namespace CustomerService.Extensions
 {
     public static class CustomExpressions
     {
-        #region  order by (property name and direction) whith filtering and pagination
         public static async Task<PageDTO<T>> ToPagedAsync<T>(this IQueryable<T> src
             , PagingOptions pagingOptions) where T : class
         {
@@ -15,15 +19,70 @@ namespace CustomerService.Extensions
             int take = pagingOptions.pageSize;
             string sortProperty = pagingOptions.SortProperty ;
             string sortDirection = pagingOptions.SortDirection ;
-            string searchProperty = pagingOptions.SearchProperty;
-            string searchValue = pagingOptions.SearchText;
+            string firstName = pagingOptions.Filters.FirstName??"";
+            string lastName = pagingOptions.Filters.LastName ?? "";
+            string phoneNumber = pagingOptions.Filters.PhoneNumber ?? "";
+            var parameter = Expression.Parameter(typeof(T), "x");
             #endregion
-            #region filteration  
-            if (!string.IsNullOrWhiteSpace(searchProperty) && !string.IsNullOrWhiteSpace(searchValue))
+            Expression combinedExpression = null;
+            if (!string.IsNullOrWhiteSpace(firstName))
             {
-                src = src.Where(ToLambdaFilter<T>(searchProperty, searchValue));
+                var firstNameExpression = CreateFilterExpression("FirstName", firstName);
+                combinedExpression = combinedExpression == null
+                    ? firstNameExpression
+                    : Expression.AndAlso(combinedExpression, firstNameExpression);
             }
+
+            if (!string.IsNullOrWhiteSpace(lastName))
+            {
+                var lastNameExpression = CreateFilterExpression("LastName", lastName);
+                combinedExpression = combinedExpression == null
+                    ? lastNameExpression
+                    : Expression.AndAlso(combinedExpression, lastNameExpression);
+            }
+
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                var phoneNumberExpression = CreateFilterExpression("PhoneNumber", phoneNumber);
+                combinedExpression = combinedExpression == null
+                    ? phoneNumberExpression
+                    : Expression.AndAlso(combinedExpression, phoneNumberExpression);
+            }
+            #region  integer   
+
+            //if (age.HasValue)
+            //{
+            //    var ageExpression = CreateFilterExpression("Age", age.Value); // Example integer property
+            //    combinedExpression = combinedExpression == null
+            //        ? ageExpression
+            //        : Expression.AndAlso(combinedExpression, ageExpression);
+            //} 
             #endregion
+            Expression CreateFilterExpression(string propertyName, object filterValue)
+            {
+                var property = Expression.Property(parameter, propertyName);
+                var filterValueExpression = Expression.Constant(filterValue);
+
+                if (filterValue is string)
+                {
+                    var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+                    return Expression.Call(property, containsMethod, filterValueExpression);
+                }
+                else if (filterValue is int)
+                {
+                    var comparison = Expression.Equal(property, filterValueExpression);
+                    return comparison;
+                }
+
+                throw new NotSupportedException("Filter value type not supported.");
+            }
+
+            if (combinedExpression != null)
+            {
+                var lambda = Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
+                src =src.Where(lambda);
+            }
+           
             #region sorting 
             if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
             {
@@ -39,31 +98,36 @@ namespace CustomerService.Extensions
 
             return results;
         }
-
-        #region  Filter Region 
-        private static Expression<Func<T, bool>> ToLambdaFilter<T>(string propertyName, string filterValue) where T : class
-        {
-            var parameter = Expression.Parameter(typeof(T), "x");
-            var property = Expression.Property(parameter, propertyName);
-            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-            var filterValueExpression = Expression.Constant(filterValue, typeof(string));
-            var containsExpression = Expression.Call(property, containsMethod, filterValueExpression);
-
-            return Expression.Lambda<Func<T, bool>>(containsExpression, parameter);
-        }
-        #endregion
-
         #region Order Region 
         public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName)
         {
+            
             return source.OrderBy(ToLambda<T>(propertyName));
         }
 
         public static IOrderedQueryable<T> OrderByDescending<T>(this IQueryable<T> source, string propertyName)
         {
-            return source.OrderByDescending(ToLambda<T>(propertyName));
+            var queryExpression = source.Expression;
+            return source.OrderByDescending(ToLambda<T>( propertyName));
         }
 
+        //private static Expression<Func<T, object>> ToLambda<T>(this Expression source, string propertyName)
+        //{
+        //    try
+        //    {
+        //        var sourceType = source.Type.GetGenericArguments().First();
+        //        var parameterExpression = Expression.Parameter(sourceType, "p");
+        //        var property = Expression.Property(parameterExpression, propertyName);
+        //        var orderByFuncType = typeof(Func<,>).MakeGenericType(sourceType, property.Type);
+        //        var orderByLambda = Expression.Lambda(orderByFuncType, property, new ParameterExpression[] { parameterExpression });
+
+        //        return orderByLambda;
+        //    }
+        //    catch (Exception ex) {
+        //        throw new Exception();
+        //    }
+
+        //}
         private static Expression<Func<T, object>> ToLambda<T>(string propertyName)
         {
             var parameter = Expression.Parameter(typeof(T), "x");
@@ -72,9 +136,42 @@ namespace CustomerService.Extensions
 
             return lambda;
         }
-
         #endregion
 
+        #region demo 
+        #region filteration with one properity   
+
+        //if (!string.IsNullOrWhiteSpace(searchProperty) && !string.IsNullOrWhiteSpace(searchValue))
+        //{
+        //    src = src.Where(ToLambdaFilter<T>(searchProperty, searchValue));
+        //}
+        #endregion
+        //private static Expression FilterBy(Expression source,string filterName,string filterValue )
+        //{
+        //    source = Filter(source, filterName , filterValue);
+        //    return source;
+        //}
+        //private static Expression Filter(Expression source, string filterName, string filterValue)
+        //{
+        //    var sourceType = source.Type.GetGenericArguments().First();
+        //    var parameter = Expression.Parameter(sourceType, "x");
+        //    var constant = Expression.Constant(filterValue);
+        //    var property = Expression.Property(parameter, filterName);
+        //    var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+        //    var filterValueExpression = Expression.Constant(filterValue, typeof(string));
+        //    return Expression.Call(property, containsMethod, filterValueExpression);
+        //}
+        #region  Filter Region 
+        //private static Expression<Func<T, bool>> ToLambdaFilter<T>(string propertyName, string filterValue) where T : class
+        //{
+        //var parameter = Expression.Parameter(typeof(T), "x");
+        //var property = Expression.Property(parameter, propertyName);
+        //var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+        //var filterValueExpression = Expression.Constant(filterValue, typeof(string));
+        //var containsExpression = Expression.Call(property, containsMethod, filterValueExpression);
+
+        //return Expression.Lambda<Func<T, bool>>(containsExpression, parameter);
+        //}
         #endregion
 
         //#region sort by property . then by property and paginate
@@ -147,7 +244,8 @@ namespace CustomerService.Extensions
         //    return propExpr;
         //}
 
-        //#endregion
+        //#endregion 
+        #endregion
 
     }
 }
