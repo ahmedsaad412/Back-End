@@ -64,7 +64,7 @@ namespace CustomerService.Extensions
             #endregion
             Expression CreateFilterExpression(string propertyName, object filterValue)
             {
-                var property = Expression.Property(parameter, propertyName);
+                var property = BuildPropertyPathExpression(parameter, propertyName);
                 var filterValueExpression = Expression.Constant(filterValue);
 
                 if (filterValue is string)
