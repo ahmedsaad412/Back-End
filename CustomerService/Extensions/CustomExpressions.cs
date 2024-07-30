@@ -3,6 +3,7 @@ using CustomerService.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.OpenApi.Expressions;
 using System;
 using System.Linq.Expressions;
 using System.Net.NetworkInformation;
@@ -23,10 +24,13 @@ namespace CustomerService.Extensions
             string lastName = pagingOptions.Filters.LastName ?? "";
             string phoneNumber = pagingOptions.Filters.PhoneNumber ?? "";
             var parameter = Expression.Parameter(typeof(T), "x");
+            var queryExpression = src.Expression;
+            
             #endregion
             Expression combinedExpression = null;
             if (!string.IsNullOrWhiteSpace(firstName))
             {
+                
                 var firstNameExpression = CreateFilterExpression("FirstName", firstName);
                 combinedExpression = combinedExpression == null
                     ? firstNameExpression
@@ -79,16 +83,18 @@ namespace CustomerService.Extensions
 
             if (combinedExpression != null)
             {
+                
                 var lambda = Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
                 src =src.Where(lambda);
+
             }
-           
+
             #region sorting 
             if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
             {
-  
-                src = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(sortProperty) : src.OrderBy(sortProperty);
-            } 
+                var property = sortProperty.Trim();
+                src = sortDirection.Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(property) : src.OrderBy(property);
+            }
             #endregion
             var results = new PageDTO<T>
             {
@@ -101,16 +107,39 @@ namespace CustomerService.Extensions
         #region Order Region 
         public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName)
         {
-            
             return source.OrderBy(ToLambda<T>(propertyName));
         }
 
         public static IOrderedQueryable<T> OrderByDescending<T>(this IQueryable<T> source, string propertyName)
         {
-            var queryExpression = source.Expression;
-            return source.OrderByDescending(ToLambda<T>( propertyName));
+            return source.OrderByDescending(ToLambda<T>(propertyName));
         }
 
+        private static Expression<Func<T, object>> ToLambda<T>(string propertyName)
+        {
+            var parameter = Expression.Parameter(typeof(T), "x");
+            var property = BuildPropertyPathExpression(parameter, propertyName);
+            var convert = Expression.Convert(property, typeof(object)); 
+            var lambda = Expression.Lambda<Func<T, object>>(convert, parameter);
+            return lambda;
+        }
+
+        private static Expression BuildPropertyPathExpression(Expression rootExpression, string propertyName)
+        {
+             
+            Expression currentExpression = rootExpression;
+                var propertyInfo = currentExpression.Type.GetProperty(propertyName,
+                    System.Reflection.BindingFlags.IgnoreCase |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.Public);
+
+                if (propertyInfo == null)
+                    throw new KeyNotFoundException($"Cannot find property {propertyName} on type {currentExpression.Type.Name}.");
+
+                currentExpression = Expression.Property(currentExpression, propertyInfo);
+            
+            return currentExpression;
+        }
         //private static Expression<Func<T, object>> ToLambda<T>(this Expression source, string propertyName)
         //{
         //    try
@@ -128,14 +157,6 @@ namespace CustomerService.Extensions
         //    }
 
         //}
-        private static Expression<Func<T, object>> ToLambda<T>(string propertyName)
-        {
-            var parameter = Expression.Parameter(typeof(T), "x");
-            var property = Expression.Property(parameter, propertyName);
-            var lambda = Expression.Lambda<Func<T, object>>(property, parameter);
-
-            return lambda;
-        }
         #endregion
 
         #region demo 
