@@ -15,87 +15,23 @@ namespace CustomerService.Extensions
         public static async Task<PageDTO<T>> ToPagedAsync<T>(this IQueryable<T> src
             , PagingOptions pagingOptions) where T : class
         {
-            #region intial values 
             int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
             int take = pagingOptions.pageSize;
             string sortProperty = pagingOptions.SortProperty ;
             string sortDirection = pagingOptions.SortDirection ;
-            string firstName = pagingOptions.Filters.FirstName??"";
-            string lastName = pagingOptions.Filters.LastName ?? "";
-            string phoneNumber = pagingOptions.Filters.PhoneNumber ?? "";
-            var parameter = Expression.Parameter(typeof(T), "x");
-            var queryExpression = src.Expression;
+            var filters =pagingOptions.Filters;
             
-            #endregion
-            Expression combinedExpression = null;
-            if (!string.IsNullOrWhiteSpace(firstName))
+            if (filters != null &&filters.Count() !=0)
             {
-                
-                var firstNameExpression = CreateFilterExpression("FirstName", firstName);
-                combinedExpression = combinedExpression == null
-                    ? firstNameExpression
-                    : Expression.AndAlso(combinedExpression, firstNameExpression);
+                var predicate = BuildPredicate<T>(filters);
+                src = src.Where(predicate);
             }
-
-            if (!string.IsNullOrWhiteSpace(lastName))
-            {
-                var lastNameExpression = CreateFilterExpression("LastName", lastName);
-                combinedExpression = combinedExpression == null
-                    ? lastNameExpression
-                    : Expression.AndAlso(combinedExpression, lastNameExpression);
-            }
-
-            if (!string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                var phoneNumberExpression = CreateFilterExpression("PhoneNumber", phoneNumber);
-                combinedExpression = combinedExpression == null
-                    ? phoneNumberExpression
-                    : Expression.AndAlso(combinedExpression, phoneNumberExpression);
-            }
-            #region  integer   
-
-            //if (age.HasValue)
-            //{
-            //    var ageExpression = CreateFilterExpression("Age", age.Value); // Example integer property
-            //    combinedExpression = combinedExpression == null
-            //        ? ageExpression
-            //        : Expression.AndAlso(combinedExpression, ageExpression);
-            //} 
-            #endregion
-            Expression CreateFilterExpression(string propertyName, object filterValue)
-            {
-                var property = BuildPropertyPathExpression(parameter, propertyName);
-                var filterValueExpression = Expression.Constant(filterValue);
-
-                if (filterValue is string)
-                {
-                    var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-                    return Expression.Call(property, containsMethod, filterValueExpression);
-                }
-                else if (filterValue is int)
-                {
-                    var comparison = Expression.Equal(property, filterValueExpression);
-                    return comparison;
-                }
-
-                throw new NotSupportedException("Filter value type not supported.");
-            }
-
-            if (combinedExpression != null)
-            {
-                
-                var lambda = Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
-                src =src.Where(lambda);
-
-            }
-
-            #region sorting 
             if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
             {
                 var property = sortProperty.Trim();
                 src = sortDirection.Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(property) : src.OrderBy(property);
             }
-            #endregion
+
             var results = new PageDTO<T>
             {
                 TotalItemCount = await src.CountAsync(),
@@ -104,7 +40,8 @@ namespace CustomerService.Extensions
 
             return results;
         }
-        #region Order Region 
+
+        #region order by      
         public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName)
         {
             return source.OrderBy(ToLambda<T>(propertyName));
@@ -119,48 +56,91 @@ namespace CustomerService.Extensions
         {
             var parameter = Expression.Parameter(typeof(T), "x");
             var property = BuildPropertyPathExpression(parameter, propertyName);
-            var convert = Expression.Convert(property, typeof(object)); 
+            var convert = Expression.Convert(property, typeof(object));
             var lambda = Expression.Lambda<Func<T, object>>(convert, parameter);
             return lambda;
         }
-
-        private static Expression BuildPropertyPathExpression(Expression rootExpression, string propertyName)
+        #endregion
+        #region Filter     
+        public static Expression<Func<T, bool>> BuildPredicate<T>(List<FilterDTO> filters)
         {
-             
+            Expression combinedExpression = null;
+            var parameter = Expression.Parameter(typeof(T), "x");
+            foreach (var filter in filters)
+            {
+                var property = CustomExpressions.BuildPropertyPathExpression(parameter, filter.PropertyName);
+                var propertyType = property.Type;
+                Expression condition = null;
+
+                if (propertyType == typeof(string))
+                {
+                    var value = Expression.Constant(filter.PropertyValue);
+                    var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+                    condition = Expression.Call(property, containsMethod, value);
+                    combinedExpression = combinedExpression==null ? condition
+                        : Expression.AndAlso(combinedExpression, condition);
+                }
+                else
+                {
+                    object parsedValue = null;
+
+                    if (TryParse(propertyType, filter.PropertyValue, out parsedValue))
+                    {
+                        var value = Expression.Constant(parsedValue, propertyType);
+                        condition = Expression.Equal(property, value);
+                        combinedExpression = combinedExpression == null ? condition
+                        : Expression.AndAlso(combinedExpression, condition);
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Unable to parse '{filter.PropertyValue}' to {propertyType.Name}");
+                    }
+                }
+
+            }
+
+            return Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
+        }
+
+        private static bool TryParse(Type targetType, string value, out object result)
+        {
+            var tryParseMethod = targetType.GetMethod("TryParse", new[] { typeof(string), targetType.MakeByRefType() });
+            if (tryParseMethod != null)
+            {
+                var parameters = new object[] { value, null };
+                var success = (bool)tryParseMethod.Invoke(null, parameters);
+                result = parameters[1];
+                return success;
+            }
+            else
+            {
+                result = null;
+                return false;
+            }
+        }
+        #endregion
+        #region Get Property   
+        public static Expression BuildPropertyPathExpression(Expression rootExpression, string propertyName)
+        {
+
             Expression currentExpression = rootExpression;
-                var propertyInfo = currentExpression.Type.GetProperty(propertyName,
-                    System.Reflection.BindingFlags.IgnoreCase |
-                    System.Reflection.BindingFlags.Instance |
-                    System.Reflection.BindingFlags.Public);
+            var propertyInfo = currentExpression.Type.GetProperty(propertyName,
+                System.Reflection.BindingFlags.IgnoreCase |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public);
 
-                if (propertyInfo == null)
-                    throw new KeyNotFoundException($"Cannot find property {propertyName} on type {currentExpression.Type.Name}.");
+            if (propertyInfo == null)
+                throw new KeyNotFoundException($"Cannot find property {propertyName} on type {currentExpression.Type.Name}.");
 
-                currentExpression = Expression.Property(currentExpression, propertyInfo);
-            
+            currentExpression = Expression.Property(currentExpression, propertyInfo);
+
             return currentExpression;
         }
-        //private static Expression<Func<T, object>> ToLambda<T>(this Expression source, string propertyName)
-        //{
-        //    try
-        //    {
-        //        var sourceType = source.Type.GetGenericArguments().First();
-        //        var parameterExpression = Expression.Parameter(sourceType, "p");
-        //        var property = Expression.Property(parameterExpression, propertyName);
-        //        var orderByFuncType = typeof(Func<,>).MakeGenericType(sourceType, property.Type);
-        //        var orderByLambda = Expression.Lambda(orderByFuncType, property, new ParameterExpression[] { parameterExpression });
-
-        //        return orderByLambda;
-        //    }
-        //    catch (Exception ex) {
-        //        throw new Exception();
-        //    }
-
-        //}
         #endregion
 
-        #region demo 
-        #region filteration with one properity   
+
+        #region comments for expressions linq    
+        #region filteration with one properity               
 
         //if (!string.IsNullOrWhiteSpace(searchProperty) && !string.IsNullOrWhiteSpace(searchValue))
         //{
@@ -265,8 +245,9 @@ namespace CustomerService.Extensions
         //    return propExpr;
         //}
 
-        //#endregion 
+        //#endregion  
         #endregion
+
 
     }
 }
