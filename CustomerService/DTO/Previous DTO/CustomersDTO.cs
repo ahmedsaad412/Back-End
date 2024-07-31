@@ -11,5 +11,8 @@
 
         public string PhoneNumber { get; set; }
 
+        public DateOnly BirthDate { get; set; }
+        public int CommercialId { get; set; }
+
     }
 }

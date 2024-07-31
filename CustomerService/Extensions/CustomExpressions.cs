@@ -67,7 +67,7 @@ namespace CustomerService.Extensions
             Expression combinedExpression = null;
             var parameter = Expression.Parameter(typeof(T), "x");
             foreach (var filter in filters)
-            {
+            {   
                 var property = CustomExpressions.BuildPropertyPathExpression(parameter, filter.PropertyName);
                 var propertyType = property.Type;
                 Expression condition = null;
@@ -124,6 +124,9 @@ namespace CustomerService.Extensions
         {
 
             Expression currentExpression = rootExpression;
+            propertyName = propertyName.Trim();
+            if (propertyName.Length == 0)
+                throw new KeyNotFoundException($"Empty {propertyName} on type {currentExpression.Type.Name} Not Allowed.");
             var propertyInfo = currentExpression.Type.GetProperty(propertyName,
                 System.Reflection.BindingFlags.IgnoreCase |
                 System.Reflection.BindingFlags.Instance |
