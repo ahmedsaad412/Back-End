@@ -12,134 +12,140 @@ namespace CustomerService.Extensions
 {
     public static class CustomExpressions
     {
-        public static async Task<PageDTO<T>> ToPagedAsync<T>(this IQueryable<T> src
-            , PagingOptions pagingOptions) where T : class
-        {
-            int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
-            int take = pagingOptions.pageSize;
-            string sortProperty = pagingOptions.SortProperty ;
-            string sortDirection = pagingOptions.SortDirection ;
-            var filters =pagingOptions.Filters;
+        //public static async Task<PageDTO<T>> ToPagedAsync<T>(this IQueryable<T> src
+        //    , PagingOptions pagingOptions) where T : class
+        //{
+        //    int skip = (pagingOptions.pageNumber - 1) * pagingOptions.pageSize;
+        //    int take = pagingOptions.pageSize;
+        //    string sortProperty = pagingOptions.SortProperty ;
+        //    string sortDirection = pagingOptions.SortDirection ;
+        //    var filters =pagingOptions.Filters;
             
-            if (filters != null &&filters.Count() !=0)
-            {
-                var predicate = BuildPredicate<T>(filters);
-                src = src.Where(predicate);
-            }
-            if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
-            {
-                var property = sortProperty.Trim();
-                src = sortDirection.Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(property) : src.OrderBy(property);
-            }
+        //    if (filters != null &&filters.Count() !=0)
+        //    {
+        //        var predicate = BuildPredicate<T>(filters);
+        //        src = src.Where(predicate);
+        //    }
+        //    if (!string.IsNullOrWhiteSpace(sortProperty) && !string.IsNullOrWhiteSpace(sortDirection))
+        //    {
+        //        var property = sortProperty.Trim();
+        //        src = sortDirection.Trim().Equals("desc", StringComparison.OrdinalIgnoreCase) ? src.OrderByDescending(property) : src.OrderBy(property);
+        //    }
 
-            var results = new PageDTO<T>
-            {
-                TotalItemCount = await src.CountAsync(),
-                Items = await src.Skip(skip).Take(take).ToListAsync()
-            };
+        //    var results = new PageDTO<T>
+        //    {
+        //        TotalItemCount = await src.CountAsync(),
+        //        Items = await src.Skip(skip).Take(take).ToListAsync()
+        //    };
 
-            return results;
-        }
+        //    return results;
+        //}
 
-        #region order by      
-        public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName)
-        {
-            return source.OrderBy(ToLambda<T>(propertyName));
-        }
+        //#region order by      
+        //public static IOrderedQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName)
+        //{
+        //    return source.OrderBy(ToLambda<T>(propertyName));
+        //}
 
-        public static IOrderedQueryable<T> OrderByDescending<T>(this IQueryable<T> source, string propertyName)
-        {
-            return source.OrderByDescending(ToLambda<T>(propertyName));
-        }
+        //public static IOrderedQueryable<T> OrderByDescending<T>(this IQueryable<T> source, string propertyName)
+        //{
+        //    return source.OrderByDescending(ToLambda<T>(propertyName));
+        //}
 
-        private static Expression<Func<T, object>> ToLambda<T>(string propertyName)
-        {
-            var parameter = Expression.Parameter(typeof(T), "x");
-            var property = BuildPropertyPathExpression(parameter, propertyName);
-            var convert = Expression.Convert(property, typeof(object));
-            var lambda = Expression.Lambda<Func<T, object>>(convert, parameter);
-            return lambda;
-        }
-        #endregion
-        #region Filter     
-        public static Expression<Func<T, bool>> BuildPredicate<T>(List<FilterDTO> filters)
-        {
-            Expression combinedExpression = null;
-            var parameter = Expression.Parameter(typeof(T), "x");
-            foreach (var filter in filters)
-            {   
-                var property = CustomExpressions.BuildPropertyPathExpression(parameter, filter.PropertyName);
-                var propertyType = property.Type;
-                Expression condition = null;
+        //private static Expression<Func<T, object>> ToLambda<T>(string propertyName)
+        //{
+        //    var parameter = Expression.Parameter(typeof(T), "x");
+        //    var property = BuildPropertyPathExpression(parameter, propertyName);
+        //    var convert = Expression.Convert(property, typeof(object));
+        //    var lambda = Expression.Lambda<Func<T, object>>(convert, parameter);
+        //    return lambda;
+        //}
+        //#endregion
+        //#region Filter     
+        //public static Expression<Func<T, bool>> BuildPredicate<T>(List<FilterDTO> filters)
+        //{
+        //    Expression combinedExpression = null;
+        //    var parameter = Expression.Parameter(typeof(T), "x");
+        //    foreach (var filter in filters)
+        //    {   
+        //        var property = CustomExpressions.BuildPropertyPathExpression(parameter, filter.PropertyName);
+        //        var propertyType = property.Type;
+        //        Expression condition = null;
 
-                if (propertyType == typeof(string))
-                {
-                    var value = Expression.Constant(filter.PropertyValue);
-                    var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
-                    condition = Expression.Call(property, containsMethod, value);
-                    combinedExpression = combinedExpression==null ? condition
-                        : Expression.AndAlso(combinedExpression, condition);
-                }
-                else
-                {
-                    object parsedValue = null;
+        //        if (propertyType == typeof(string)&& filter.PropertyName !="phoneNumber")
+        //        {
+        //            var value = Expression.Constant(filter.PropertyValue);
+        //            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) });
+        //            condition = Expression.Call(property, containsMethod, value);
+        //            combinedExpression = combinedExpression==null ? condition
+        //                : Expression.AndAlso(combinedExpression, condition);
+        //        }
+        //        else
+        //        {
+        //            object parsedValue = null;
 
-                    if (TryParse(propertyType, filter.PropertyValue, out parsedValue))
-                    {
-                        var value = Expression.Constant(parsedValue, propertyType);
-                        condition = Expression.Equal(property, value);
-                        combinedExpression = combinedExpression == null ? condition
-                        : Expression.AndAlso(combinedExpression, condition);
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"Unable to parse '{filter.PropertyValue}' to {propertyType.Name}");
-                    }
-                }
+        //            if (TryParse(propertyType, filter.PropertyValue, out parsedValue))
+        //            {
+        //                var value = Expression.Constant(parsedValue, propertyType);
+        //                condition = Expression.Equal(property, value);
+        //                combinedExpression = combinedExpression == null ? condition
+        //                : Expression.AndAlso(combinedExpression, condition);
+        //            }
+        //            else if(filter.PropertyName == "phoneNumber")
+        //            {
+        //                var value = Expression.Constant(filter.PropertyValue);
+        //                condition = Expression.Equal(property, value);
+        //                combinedExpression = combinedExpression == null ? condition
+        //                : Expression.AndAlso(combinedExpression, condition);
+        //            }
+        //            else
+        //            {
+        //                throw new ArgumentException($"Unable to parse '{filter.PropertyValue}' to {propertyType.Name}");
+        //            }
+        //        }
 
-            }
+        //    }
 
-            return Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
-        }
+        //    return Expression.Lambda<Func<T, bool>>(combinedExpression, parameter);
+        //}
 
-        private static bool TryParse(Type targetType, string value, out object result)
-        {
-            var tryParseMethod = targetType.GetMethod("TryParse", new[] { typeof(string), targetType.MakeByRefType() });
-            if (tryParseMethod != null)
-            {
-                var parameters = new object[] { value, null };
-                var success = (bool)tryParseMethod.Invoke(null, parameters);
-                result = parameters[1];
-                return success;
-            }
-            else
-            {
-                result = null;
-                return false;
-            }
-        }
-        #endregion
-        #region Get Property   
-        public static Expression BuildPropertyPathExpression(Expression rootExpression, string propertyName)
-        {
+        //private static bool TryParse(Type targetType, string value, out object result)
+        //{
+        //    var tryParseMethod = targetType.GetMethod("TryParse", new[] { typeof(string), targetType.MakeByRefType() });
+        //    if (tryParseMethod != null)
+        //    {
+        //        var parameters = new object[] { value, null };
+        //        var success = (bool)tryParseMethod.Invoke(null, parameters);
+        //        result = parameters[1];
+        //        return success;
+        //    }
+        //    else
+        //    {
+        //        result = null;
+        //        return false;
+        //    }
+        //}
+        //#endregion
+        //#region Get Property   
+        //public static Expression BuildPropertyPathExpression(Expression rootExpression, string propertyName)
+        //{
+        //    Expression currentExpression = rootExpression;
+        //    propertyName = propertyName.Trim();
+        //    if (propertyName.Length == 0)
+        //        throw new KeyNotFoundException($"Empty {propertyName} on type {currentExpression.Type.Name} Not Allowed.");
+        //    var propertyInfo = currentExpression.Type.GetProperty(propertyName,
+        //        System.Reflection.BindingFlags.IgnoreCase |
+        //        System.Reflection.BindingFlags.Instance |
+        //        System.Reflection.BindingFlags.Public);
 
-            Expression currentExpression = rootExpression;
-            propertyName = propertyName.Trim();
-            if (propertyName.Length == 0)
-                throw new KeyNotFoundException($"Empty {propertyName} on type {currentExpression.Type.Name} Not Allowed.");
-            var propertyInfo = currentExpression.Type.GetProperty(propertyName,
-                System.Reflection.BindingFlags.IgnoreCase |
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.Public);
+        //    if (propertyInfo == null)
+        //        throw new KeyNotFoundException($"Cannot find property {propertyName} on type {currentExpression.Type.Name}.");
 
-            if (propertyInfo == null)
-                throw new KeyNotFoundException($"Cannot find property {propertyName} on type {currentExpression.Type.Name}.");
+        //    currentExpression = Expression.Property(currentExpression, propertyInfo);
 
-            currentExpression = Expression.Property(currentExpression, propertyInfo);
-
-            return currentExpression;
-        }
-        #endregion
+        //    return currentExpression;
+        //}
+        //#endregion
 
 
         #region comments for expressions linq    
