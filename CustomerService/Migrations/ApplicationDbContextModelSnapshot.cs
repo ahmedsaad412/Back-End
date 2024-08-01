@@ -57,7 +57,7 @@ namespace CustomerService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ASCustomers");
+                    b.ToTable("ASCustomers", (string)null);
                 });
 
             modelBuilder.Entity("CustomerService.Entities.User", b =>
@@ -89,7 +89,7 @@ namespace CustomerService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ASUsers");
+                    b.ToTable("ASUsers", (string)null);
                 });
 #pragma warning restore 612, 618
         }

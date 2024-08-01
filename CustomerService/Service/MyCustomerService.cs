@@ -22,22 +22,28 @@ namespace CustomerService.Service
 
         public async Task<PageDTO<Customer>> GetCustomerPage(PagingOptions pagingOptions)
         {
-            var filter = DeserializeFilter(pagingOptions.Filters);
+            CustomerFilterDTO filter = DeserializeFilter(pagingOptions.Filters) ?? new CustomerFilterDTO();
             var query = BuildQuery(filter);
-
             var page = await query.PageAsync(pagingOptions);
             return page;
         }
         private IQueryable<Customer> BuildQuery(CustomerFilterDTO filter)
         {
-            var query = _context.ASCustomers.AsQueryable();
-            if(!string.IsNullOrWhiteSpace(filter.FirstName)|| !string.IsNullOrWhiteSpace(filter.LastName))
-                query = ApplyContainFilter(query, filter.FirstName, filter.LastName);
-            if (!string.IsNullOrWhiteSpace(filter.PhoneNumber))
+            var query = _context.ASCustomers.AsQueryable();      
+                query = ApplyContainFilter(query, filter.FirstName, filter.LastName);         
                 query = ApplyEqualFilter(query, filter.PhoneNumber);
-            if (!string.IsNullOrWhiteSpace(filter.DateFrom) || !string.IsNullOrWhiteSpace(filter.DateTo))
                 query = ApplyDateFilters(query, filter.DateFrom, filter.DateTo);
             return query;
+            #region 
+            //var query = _context.ASCustomers.AsQueryable();
+            //if(!string.IsNullOrWhiteSpace(filter.FirstName)|| !string.IsNullOrWhiteSpace(filter.LastName))
+            //    query = ApplyContainFilter(query, filter.FirstName, filter.LastName);
+            //if (!string.IsNullOrWhiteSpace(filter.PhoneNumber))
+            //    query = ApplyEqualFilter(query, filter.PhoneNumber);
+            //if (!string.IsNullOrWhiteSpace(filter.DateFrom) || !string.IsNullOrWhiteSpace(filter.DateTo))
+            //    query = ApplyDateFilters(query, filter.DateFrom, filter.DateTo);
+            //return query; 
+            #endregion
         }
 
         private IQueryable<Customer> ApplyContainFilter(IQueryable<Customer> query, string? firstName, string? lastName)
@@ -58,7 +64,8 @@ namespace CustomerService.Service
 
         private IQueryable<Customer> ApplyEqualFilter(IQueryable<Customer> query, string? phoneNumber)
         {
-            query = query.Where(c => c.PhoneNumber == phoneNumber);
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+                query = query.Where(c => c.PhoneNumber == phoneNumber);
             return query;
         }
 
@@ -76,7 +83,7 @@ namespace CustomerService.Service
 
             return query;
         }
-        public CustomerFilterDTO? DeserializeFilter(string filters)
+        private CustomerFilterDTO? DeserializeFilter(string filters)
         {
             CustomerFilterDTO? filter = string.IsNullOrWhiteSpace(filters)
                 ? new CustomerFilterDTO()

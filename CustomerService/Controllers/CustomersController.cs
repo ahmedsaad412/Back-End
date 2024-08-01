@@ -19,18 +19,6 @@ namespace CustomerService.Controllers
 
         }
 
-        [HttpGet("AllCustomers")]
-        public async Task<ActionResult<Page<Customer>>> GetGenricPaged()
-        {
-            var page = await _customerService.GetCustomers();
-            return Ok(page);
-        }
-        //[HttpPost("GetCustomerPage")]
-        //public async Task<ActionResult<Page<Customer>>> GetCustomerPage([FromBody] PagingOptions pagingOptions)
-        //{
-        //    var page = await _customerService.GetPage<Customer>(pagingOptions);
-        //    return Ok(page);
-        //} 
         [HttpPost("GetCustomerPageNew")]
         public async Task<ActionResult<Page<Customer>>> GetCustomerPageNew([FromBody] PagingOptions pagingOptions )
         {
@@ -38,6 +26,20 @@ namespace CustomerService.Controllers
             var page = await _customerService.GetCustomerPage(pagingOptions);
             return Ok(page);
         }
+
+
+        //[HttpGet("AllCustomers")]
+        //public async Task<ActionResult<Page<Customer>>> GetGenricPaged()
+        //{
+        //    var page = await _customerService.GetCustomers();
+        //    return Ok(page);
+        //}
+        //[HttpPost("GetCustomerPage")]
+        //public async Task<ActionResult<Page<Customer>>> GetCustomerPage([FromBody] PagingOptions pagingOptions)
+        //{
+        //    var page = await _customerService.GetPage<Customer>(pagingOptions);
+        //    return Ok(page);
+        //} 
 
         //[HttpPost("GetUserPage")]
         //public async Task<ActionResult<Page<User>>> GetUserPage([FromBody] PagingOptions pagingOptions)
